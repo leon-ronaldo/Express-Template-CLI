@@ -2,7 +2,7 @@
 
 import { program } from 'commander';
 import createModuleAndLinkServerFile from './createModule.js';
-import createTemplate from './createTemplate.js';
+import { createTemplate, createTSTemplate } from './createTemplate.js';
 import createUserSystem from './createUserSystem.js';
 import chalk from 'chalk';
 
@@ -10,14 +10,15 @@ import chalk from 'chalk';
 program
     .command('express-basic-template')
     .description('Generate a basic Express.js project structure')
-    .action(() => {
+    .option('--ts', 'Create project in TypesScript')
+    .action((options) => {
         try {
-            createTemplate()
+            if (options.ts) createTSTemplate();
+            else createTemplate();
         } catch (error) {
             console.log(chalk.red(`Error occured while performing tasks.. ${error}`))
         }
     });
-
 
 
 //add module

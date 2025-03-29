@@ -839,6 +839,36 @@ app.listen(PORT, () => {
 });
 `
 
+const serverFileContentTS = `
+// Basic Express.js server
+import express, { Request, Response } from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+// import connectDb from './config/dbConnection';
+
+const app = express();
+
+// DB config
+// connectDb(); // Uncomment this after adding connection to DB
+
+// Middleware
+app.use(express.json());
+
+// Routes (Add your routes here)
+// Example: app.use('/api', require('./routes/apiRoutes'));
+
+// Server starting
+app.get('/', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), 'index.html')); // Adjust the path to match your file's location
+});
+
+// Start the server
+const PORT = 8055;
+app.listen(PORT, () => {
+    console.log(\`Server is running on http://localhost:\${PORT}\`);
+});
+`
+
 const userControllerJWTContent = `const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -848,42 +878,42 @@ const User = require("../models/UserModel");
 //@route POST /users/register
 //@access public
 const registerUser = asyncHandler(async (req, res) => {
-  const { userName, email, password, phone } = req.body;
-  
-  if (!userName || !email || !password || !phone) {
-    res.status(401).json({message: "All fields are mandatory!"});
-    return
-  }
+    const { userName, email, password, phone } = req.body;
 
-  const userExists = await User.findOne({ email }); //email set to primary key, set userName or anything as per your wish
-  if (userExists) {
-    res.status(400).json({ message: "User already exists try loggin in!" });
-    return
-  }
+    if (!userName || !email || !password || !phone) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return
+    }
 
-  //Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
+    const userExists = await User.findOne({ email }); //email set to primary key, set userName or anything as per your wish
+    if (userExists) {
+        res.status(400).json({ message: "User already exists try loggin in!" });
+        return
+    }
 
-  const user = await User.create({
-    userName: userName,
-    email: email,
-    password: hashedPassword,
-    phone: phone,
-  });
+    //Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  if (user) {
-    const accessToken = jwt.sign(
-      { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' } //consider adding secret via .env file
-    );
+    const user = await User.create({
+        userName: userName,
+        email: email,
+        password: hashedPassword,
+        phone: phone,
+    });
 
-    const refreshToken = jwt.sign(
-        { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' } //consider adding secret via .env file
-    );
+    if (user) {
+        const accessToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' } //consider adding secret via .env file
+        );
 
-    res.status(201).json({accessToken: accessToken, refreshToken: refreshToken})
-  } else {
-    res.status(501).json({message: "Some error occured while creating user, try again!"});
-  }
+        const refreshToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' } //consider adding secret via .env file
+        );
+
+        res.status(201).json({ accessToken: accessToken, refreshToken: refreshToken })
+    } else {
+        res.status(501).json({ message: "Some error occured while creating user, try again!" });
+    }
 });
 
 
@@ -891,35 +921,35 @@ const registerUser = asyncHandler(async (req, res) => {
 //@route POST /users/login
 //@access public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body; //email login, change to userName or anything as per your wish
+    const { email, password } = req.body; //email login, change to userName or anything as per your wish
 
-  if (!email || !password) {
-    res.status(401).json({message: "All fields are mandatory!"})
-    return
-  }
+    if (!email || !password) {
+        res.status(401).json({ message: "All fields are mandatory!" })
+        return
+    }
 
-  const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: email });
 
-  if (!user) {
-    res.status(404).json({message: "No user found try creating one!"});
-    return
-  }
+    if (!user) {
+        res.status(404).json({ message: "No user found try creating one!" });
+        return
+    }
 
-  //compare password with hashedpassword
-  if (user && (await bcrypt.compare(password, user.password))) {
+    //compare password with hashedpassword
+    if (user && (await bcrypt.compare(password, user.password))) {
 
-    const accessToken = jwt.sign(
-      { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' } //consider adding secret via .env file
-    );
+        const accessToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' } //consider adding secret via .env file
+        );
 
-    const refreshToken = jwt.sign(
-      { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' } //consider adding secret via .env file
-    );
+        const refreshToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' } //consider adding secret via .env file
+        );
 
-    res.status(200).json({accessToken: accessToken, refreshToken: refreshToken})
-  } else {
-    res.status(401).json({message: 'incorrect credentials'});
-  }
+        res.status(200).json({ accessToken: accessToken, refreshToken: refreshToken })
+    } else {
+        res.status(401).json({ message: 'incorrect credentials' });
+    }
 });
 
 
@@ -928,16 +958,125 @@ const loginUser = asyncHandler(async (req, res) => {
 //@route POST /users/current
 //@access private
 const currentUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId);
 
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
 
-  res.status(200).json({ message: 'user success', 'user': user });
+    res.status(200).json({ message: 'user success', 'user': user });
 });
 
 module.exports = { registerUser, loginUser, currentUser }
+    `
+
+const userControllerJWTContentTS = `import { Request, Response } from "express";
+import asyncHandler from "express-async-handler";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/UserModel";
+
+interface AuthRequest extends Request {
+    user?: { userId: string; email: string };
+}
+
+//@desc Register a user
+//@route POST /users/register
+//@access public
+const registerUser = asyncHandler(async (req: Request, res: Response) => {
+    const { userName, email, password, phone } = req.body;
+
+    if (!userName || !email || !password || !phone) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return;
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+        res.status(400).json({ message: "User already exists try logging in!" });
+        return;
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+        userName: userName,
+        email: email,
+        password: hashedPassword,
+        phone: phone,
+    });
+
+    if (user) {
+        const accessToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' }
+        );
+
+        const refreshToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' }
+        );
+
+        res.status(201).json({ accessToken, refreshToken });
+    } else {
+        res.status(501).json({ message: "Some error occurred while creating user, try again!" });
+    }
+});
+
+//@desc Login user
+//@route POST /users/login
+//@access public
+const loginUser = asyncHandler(async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(404).json({ message: "No user found try creating one!" });
+        return;
+    }
+
+    // Compare password with hashed password
+    if (user && (await bcrypt.compare(password, user.password))) {
+        const accessToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your secret here', { expiresIn: '1d' }
+        );
+
+        const refreshToken = jwt.sign(
+            { userId: user._id, email: user.email }, 'your different secret here', { expiresIn: '7d' }
+        );
+
+        res.status(200).json({ accessToken, refreshToken });
+    } else {
+        res.status(401).json({ message: 'Incorrect credentials' });
+    }
+});
+
+//@desc Current user info
+//@route POST /users/current
+//@access private
+const currentUser = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+    }
+
+    res.status(200).json({ message: 'User success', user });
+});
+
+export { registerUser, loginUser, currentUser };
+
 `
 
 const userControllerContent = `const asyncHandler = require("express-async-handler");
@@ -948,34 +1087,34 @@ const User = require("../models/UserModel");
 //@route POST /users/register
 //@access public
 const registerUser = asyncHandler(async (req, res) => {
-  const { userName, email, password, phone } = req.body;
-  
-  if (!userName || !email || !password || !phone) {
-    res.status(401).json({message: "All fields are mandatory!"});
-    return
-  }
+    const { userName, email, password, phone } = req.body;
 
-  const userExists = await User.findOne({ email }); //email set to primary key, set userName or anything as per your wish
-  if (userExists) {
-    res.status(400).json({ message: "User already exists try loggin in!" });
-    return
-  }
+    if (!userName || !email || !password || !phone) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return
+    }
 
-  //Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
+    const userExists = await User.findOne({ email }); //email set to primary key, set userName or anything as per your wish
+    if (userExists) {
+        res.status(400).json({ message: "User already exists try loggin in!" });
+        return
+    }
 
-  const user = await User.create({
-    userName: userName,
-    email: email,
-    password: hashedPassword,
-    phone: phone,
-  });
+    //Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  if (user) {
-    res.status(201).json({message: "User created successfully"}) //use your own logic
-  } else {
-    res.status(501).json({message: "Some error occured while creating user, try again!"});
-  }
+    const user = await User.create({
+        userName: userName,
+        email: email,
+        password: hashedPassword,
+        phone: phone,
+    });
+
+    if (user) {
+        res.status(201).json({ message: "User created successfully" }) //use your own logic
+    } else {
+        res.status(501).json({ message: "Some error occured while creating user, try again!" });
+    }
 });
 
 
@@ -983,66 +1122,178 @@ const registerUser = asyncHandler(async (req, res) => {
 //@route POST /users/login
 //@access public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body; //email login, change to userName or anything as per your wish
+    const { email, password } = req.body; //email login, change to userName or anything as per your wish
 
-  if (!email || !password) {
-    res.status(401).json({message: "All fields are mandatory!"})
-    return
-  }
+    if (!email || !password) {
+        res.status(401).json({ message: "All fields are mandatory!" })
+        return
+    }
 
-  const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: email });
 
-  if (!user) {
-    res.status(404).json({message: "No user found try creating one!"});
-    return
-  }
+    if (!user) {
+        res.status(404).json({ message: "No user found try creating one!" });
+        return
+    }
 
-  //compare password with hashedpassword
-  if (user && (await bcrypt.compare(password, user.password))) {
-    res.status(200).json({message: "User logged in successfully"}) //use your own login
-  } else {
-    res.status(401).json({message: 'incorrect credentials'});
-  }
+    //compare password with hashedpassword
+    if (user && (await bcrypt.compare(password, user.password))) {
+        res.status(200).json({ message: "User logged in successfully" }) //use your own login
+    } else {
+        res.status(401).json({ message: 'incorrect credentials' });
+    }
 });
 
 module.exports = { registerUser, loginUser }
+    `
+
+const userControllerContentTS = `import { Request, Response } from "express";
+import asyncHandler from "express-async-handler";
+import bcrypt from "bcryptjs";
+import User from "../models/UserModel";
+
+//@desc Register a user
+//@route POST /users/register
+//@access public
+const registerUser = asyncHandler(async (req: Request, res: Response) => {
+    const { userName, email, password, phone } = req.body;
+
+    if (!userName || !email || !password || !phone) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return;
+    }
+
+    const userExists = await User.findOne({ email }); //email set to primary key, set userName or anything as per your wish
+    if (userExists) {
+        res.status(400).json({ message: "User already exists try logging in!" });
+        return;
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+        userName,
+        email,
+        password: hashedPassword,
+        phone,
+    });
+
+    if (user) {
+        res.status(201).json({ message: "User created successfully" }); // Use your own logic
+    } else {
+        res.status(501).json({ message: "Some error occurred while creating user, try again!" });
+    }
+});
+
+//@desc Login user
+//@route POST /users/login
+//@access public
+const loginUser = asyncHandler(async (req: Request, res: Response) => {
+    const { email, password } = req.body; // Email login, change to userName or anything as per your wish
+
+    if (!email || !password) {
+        res.status(401).json({ message: "All fields are mandatory!" });
+        return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(404).json({ message: "No user found, try creating one!" });
+        return;
+    }
+
+    // Compare password with hashed password
+    if (await bcrypt.compare(password, user.password)) {
+        res.status(200).json({ message: "User logged in successfully" }); // Use your own logic
+    } else {
+        res.status(401).json({ message: "Incorrect credentials" });
+    }
+});
+
+export { registerUser, loginUser };
 `
 
 const userModelContent = `const mongoose = require('mongoose');
 
 // Modify your user model here
 const userSchema = mongoose.Schema(
-  {
-    userName: {
-        type: String,
-        required: [true, 'username is missing'],
+    {
+        userName: {
+            type: String,
+            required: [true, 'username is missing'],
+        },
+        email: {
+            type: String,
+            required: [true, 'email id is missing'],
+        },
+        phone: {
+            type: String,
+            required: [true, 'phone is missing'],
+        },
+        password: String,
     },
-    email: {
-        type: String,
-        required: [true, 'email id is missing'],
-    },
-    phone: {
-        type: String,
-        required: [true, 'phone is missing'],
-    },
-    password: String,
-  }, 
-  {
-    timestamps: true,
-  }
+    {
+        timestamps: true,
+    }
 );
 
 // Check if the model already exists to prevent redefining
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-module.exports = User;`
+module.exports = User; `
+
+const userModelContentTS = `import mongoose, { Document, Schema } from 'mongoose';
+
+// Define the User interface
+interface IUser extends Document {
+    userName: string;
+    email: string;
+    phone: string;
+    password: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+// Define the user schema
+const userSchema = new Schema<IUser>(
+    {
+        userName: {
+            type: String,
+            required: [true, 'Username is missing'],
+        },
+        email: {
+            type: String,
+            required: [true, 'Email ID is missing'],
+            unique: true, // Ensures uniqueness
+        },
+        phone: {
+            type: String,
+            required: [true, 'Phone is missing'],
+        },
+        password: {
+            type: String,
+            required: true, // Ensures password is mandatory
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+// Check if the model already exists to prevent redefining
+const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+
+export default User;
+`
 
 const userRoutesContentJWT = `const express = require("express");
 const router = express.Router();
 const {
-  loginUser,
-  registerUser,
-  currentUser,
+    loginUser,
+    registerUser,
+    currentUser,
 } = require("../controllers/UserController");
 
 
@@ -1052,19 +1303,42 @@ router.route("/current").get(ensureAuthenticated, currentUser);
 router.route("/login").post(loginUser);
 router.route("/register").post(registerUser);
 
-module.exports = router;`
+module.exports = router; `
+
+const userRoutesContentJWTTS = `import express from "express";
+import { loginUser, registerUser, currentUser } from "../controllers/UserController";
+import ensureAuthenticated from "../middleware/authMiddleware";
+
+const router = express.Router();
+
+router.route("/current").get(ensureAuthenticated, currentUser);
+router.route("/login").post(loginUser);
+router.route("/register").post(registerUser);
+
+export default router;
+`
 
 const userRoutesContent = `const express = require("express");
 const router = express.Router();
 const {
-  loginUser,
-  registerUser,
+    loginUser,
+    registerUser,
 } = require("../controllers/UserController");
 
 router.route("/login").post(loginUser);
 router.route("/register").post(registerUser);
 
-module.exports = router;`
+module.exports = router; `
+
+const userRoutesContentTS = `import express from "express";
+import { loginUser, registerUser } from "../controllers/UserController";
+
+const router = express.Router();
+
+router.route("/login").post(loginUser);
+router.route("/register").post(registerUser);
+
+export default router;`
 
 const authMiddlewareContent = `const jwt = require('jsonwebtoken');
 
@@ -1076,7 +1350,7 @@ const authenticateJWT = (req, res, next) => {
 
         jwt.verify(token, 'your secret here', (err, user) => { //consider adding secret via .env file
             if (err) {
-                return res.status(401).json({error: err});
+                return res.status(401).json({ error: err });
             }
 
             console.log(user);
@@ -1084,10 +1358,52 @@ const authenticateJWT = (req, res, next) => {
             next();
         });
     } else {
-        res.status(401).json({error: 'not an authorized user'});
+        res.status(401).json({ error: 'not an authorized user' });
     }
 };
 
-module.exports = authenticateJWT;`
+module.exports = authenticateJWT; `
 
-export { htmlContent, serverFileContent, userControllerJWTContent, userControllerContent, userModelContent, userRoutesContent, userRoutesContentJWT, authMiddlewareContent };
+const authMiddlewareContentTS = `import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+
+const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+
+    if (typeof authHeader === "string") {
+        const token = authHeader.split(" ")[1];
+
+        jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
+            if (err) {
+                return res.status(401).json({ error: err.message });
+            }
+
+            console.log(user);
+            req.user = user;
+            next();
+        });
+    } else {
+        res.status(401).json({ error: "Not an authorized user" });
+    }
+};
+
+export default authenticateJWT;
+`
+
+export {
+    htmlContent,
+    serverFileContent,
+    serverFileContentTS,
+    userControllerJWTContent,
+    userControllerJWTContentTS,
+    userControllerContent,
+    userControllerContentTS,
+    userModelContent,
+    userModelContentTS,
+    userRoutesContent,
+    userRoutesContentTS,
+    userRoutesContentJWT,
+    userRoutesContentJWTTS,
+    authMiddlewareContent,
+    authMiddlewareContentTS
+};

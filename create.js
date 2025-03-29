@@ -21,25 +21,41 @@ const createDirectory = (dirPath) => {
     }
 }
 
-const createConfigFile = () => {
-    const content = `const mongoose = require("mongoose");
+const createConfigFile = (options = { forTS: false }) => {
+    const { forTS } = options
+    const content = !forTS ? `const mongoose = require("mongoose");
 
 const connectDb = async () => {
     try {
-    const connect = await mongoose.connect("mongodb srv string here!!");
+    const connection = await mongoose.connect("mongodb srv string here!!");
     console.log(
         "Database connected: ",
         connect.connection.host,
         connect.connection.name
     );
     } catch (err) {
-    console.log(err);
+    console.error(err);
     }
 };
 
-module.exports = connectDb;`
+module.exports = connectDb;` : `import mongoose from 'mongoose'
 
-    const configFilePath = path.join(process.cwd(), 'config', 'dbConnection.js')
+const connectDb = async () => {
+    try {
+    const connection = await mongoose.connect("mongodb srv string here!!");
+    console.log(
+        "Database connected: ",
+        connect.connection.host,
+        connect.connection.name
+    );
+    } catch (err) {
+    console.error(err);
+    }
+};
+
+export default connectDb`
+
+    const configFilePath = path.join(process.cwd(), 'config', !forTS ? 'dbConnection.js' : 'dbConnection.ts')
 
     if (!fs.existsSync(configFilePath)) {
         fs.writeFileSync(configFilePath, content, 'utf8');
@@ -49,17 +65,31 @@ module.exports = connectDb;`
     }
 }
 
-const createControllerFile = (filePath, module) => {
-    const content = `const asyncHandler = require("express-async-handler")
+const createControllerFile = (filePath, module, options = { forTS: false }) => {
+    const { forTS } = options
 
+    const content = forTS
+        ? `import asyncHandler from "express-async-handler";
+import { Request, Response } from "express";
 
-const ${module}Origin = asyncHandler(async (req, res) => {
-    console.log("created ${module} successfully")
-    res.status(200).json({module: ${module}})
+const ${module}Origin = asyncHandler(async (req: Request, res: Response) => {
+    console.log("created ${module} successfully");
+    res.status(200).json({ route: "${module}" });
 });
 
-module.exports = { ${module}Origin }
-    `
+export { ${module}Origin };
+`
+        : `const asyncHandler = require("express-async-handler");
+
+const ${module}Origin = asyncHandler(async (req, res) => {
+    console.log("created ${module} successfully");
+    res.status(200).json({ route: "${module}" });
+});
+
+module.exports = { ${module}Origin };
+`;
+
+
 
     if (!fs.existsSync(filePath, module)) {
         fs.writeFileSync(filePath, content, 'utf8');
@@ -69,8 +99,23 @@ module.exports = { ${module}Origin }
     }
 }
 
-const createRouterFile = (filePath, module) => {
-    const content = `const express = require("express")
+const createRouterFile = (filePath, module, options = { forTS: false }) => {
+    const { forTS } = options
+
+    const content = forTS ?
+        `import express from "express"
+import {
+    ${module}Origin
+} from "../controllers/${module}Controller"
+
+const router = express.Router()
+
+router.get('/', ${module}Origin)
+
+export default router;
+    `
+        :
+        `const express = require("express")
 const router = express.Router()
 const {
     ${module}Origin
@@ -89,8 +134,33 @@ module.exports = router
     }
 }
 
-const createModelFile = (filePath, module) => {
-    const content = `const mongoose = require('mongoose');
+const createModelFile = (filePath, module, options = { forTS: false }) => {
+    const { forTS } = options
+
+    const content = forTS ? `import mongoose, { Schema, Document } from "mongoose";
+
+    // Define the schema interface
+    interface I${module} extends Document {
+        ${module}: string;
+    }
+    
+    // Define the schema
+    const ${module}Schema = new Schema<I${module}>(
+        {
+            ${module}: { type: String, required: true },
+        },
+        {
+            timestamps: true,
+        }
+    );
+    
+    // Check if the model already exists to prevent redefining
+    const ${module} = mongoose.models.${module} || mongoose.model<I${module}>("${module}", ${module}Schema);
+    
+    export default ${module};
+        `
+        :
+        `const mongoose = require('mongoose');
 
 // Define the schema here
 const ${module}Schema = mongoose.Schema(
